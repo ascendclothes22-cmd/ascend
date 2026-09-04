@@ -89,3 +89,20 @@ export interface AdminStats {
   topProducts: { name: string; sold: number }[];
   dailySales: { date: string; amount: number }[];
 }
+
+export type NotificationType =
+  | "order_confirmation"
+  | "admin_order_alert"
+  | "order_status_update"
+  | "low_stock_alert"
+  | "contact_form";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  subject: string;
+  recipient: string;
+  status: "sent" | "failed" | "pending";
+  createdAt: string;
+  orderId?: string;
+}

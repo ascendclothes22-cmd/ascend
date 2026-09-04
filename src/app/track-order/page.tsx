@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Package, Search, Check, Clock, Truck, X, CheckCircle } from "lucide-react";
 import { mockOrders } from "@/lib/data";
+import { formatPrice } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 
 const statusSteps: { status: OrderStatus; icon: typeof Package; label: string }[] = [
@@ -170,14 +171,14 @@ export default function TrackOrderPage() {
                         </p>
                       </div>
                       <span className="text-sm font-heading font-bold text-ascend-accent">
-                        ${item.price * item.quantity}
+                        {formatPrice(item.price * item.quantity)}
                       </span>
                     </div>
                   ))}
                   <div className="flex justify-between pt-2 border-t border-white/10">
                     <span className="font-heading font-bold">Total</span>
                     <span className="font-heading font-bold text-ascend-accent">
-                      ${found.total}
+                      {formatPrice(found.total)}
                     </span>
                   </div>
                 </div>

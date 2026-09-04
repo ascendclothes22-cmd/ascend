@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -11,6 +12,8 @@ export function CartSidebar() {
   const { items, isOpen, setCartOpen, removeItem, updateQuantity, getSubtotal, getTotal, coupon, discount, applyCoupon, removeCoupon } = useCartStore();
   const subtotal = getSubtotal();
   const total = getTotal();
+
+  const [couponInput, setCouponInput] = useState("");
 
   return (
     <AnimatePresence>
@@ -139,15 +142,13 @@ export function CartSidebar() {
                   <input
                     type="text"
                     placeholder="Coupon code"
-                    defaultValue={coupon}
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
                     className="flex-1 h-10 px-3 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/50 focus:outline-none focus:border-ascend-accent font-body"
                   />
                   <button
                     onClick={() => {
-                      const input = document.querySelector('input[placeholder="Coupon code"]') as HTMLInputElement;
-                      if (input?.value) {
-                        applyCoupon(input.value);
-                      }
+                      if (couponInput) applyCoupon(couponInput);
                     }}
                     className="h-10 px-4 text-xs font-heading uppercase tracking-wider border border-white/20 text-ascend-white hover:border-ascend-accent hover:text-ascend-accent transition-all"
                   >

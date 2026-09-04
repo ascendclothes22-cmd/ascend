@@ -154,7 +154,10 @@ export function Footer() {
             </span>
           </div>
           <p className="text-xs text-ascend-gray/50">
-            &copy; {new Date().getFullYear()} ASCEND. All rights reserved.
+            &copy; {new Date().getFullYear()} ASCEND. All rights reserved.{' '}
+            <Link href="/admin" className="hover:text-ascend-accent transition-colors">
+              Admin
+            </Link>
           </p>
         </div>
       </div>

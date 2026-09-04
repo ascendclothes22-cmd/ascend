@@ -1,9 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { CartSidebar } from "@/components/layout/CartSidebar";
+import { LayoutShell } from "@/components/layout/LayoutShell";
 import { I18nProvider } from "@/components/layout/I18nProvider";
 
 const inter = Inter({
@@ -61,11 +59,18 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: "/manifest.json",
-  themeColor: "#0A0A0A",
+
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A0A0A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -102,10 +107,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${oswald.variable} font-body antialiased`}>
         <I18nProvider>
-          <Navbar />
-          <CartSidebar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <LayoutShell>{children}</LayoutShell>
         </I18nProvider>
       </body>
     </html>

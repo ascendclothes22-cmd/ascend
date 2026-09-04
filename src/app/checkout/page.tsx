@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, ArrowLeft, ShoppingBag } from "lucide-react";
+import { Check, ArrowLeft, ShoppingBag, Mail } from "lucide-react";
 import Link from "next/link";
 import { useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
+import type { Order, OrderItem } from "@/lib/types";
 
 export default function CheckoutPage() {
   const { items, getSubtotal, getTotal, coupon, discount, clearCart } = useCartStore();
@@ -13,19 +14,63 @@ export default function CheckoutPage() {
   const total = getTotal();
   const [submitted, setSubmitted] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
+  const [sending, setSending] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
+    email: "",
     phone: "",
     city: "",
     address: "",
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSending(true);
+
     const num = `ASC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
+
+    // Build order object
+    const orderItems: OrderItem[] = items.map((item) => ({
+      productId: item.product.id,
+      productName: item.product.name,
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity,
+      price: item.product.price,
+    }));
+
+    const order: Order = {
+      id: `ord-${Date.now()}`,
+      orderNumber: num,
+      customerName: form.fullName,
+      phone: form.phone,
+      city: form.city,
+      address: form.address,
+      notes: form.notes || undefined,
+      items: orderItems,
+      total,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Send email notifications (fire and forget — don't block checkout)
+    try {
+      fetch("/api/notifications/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order, customerEmail: form.email || undefined }),
+      }).catch(() => {
+        // Silently fail — order still goes through
+      });
+    } catch {
+      // Network error — order still goes through
+    }
+
     setOrderNumber(num);
+    setSending(false);
     setSubmitted(true);
     clearCart();
   };
@@ -84,7 +129,9 @@ export default function CheckoutPage() {
             transition={{ delay: 0.4 }}
             className="text-ascend-gray mb-8"
           >
-            Thank you for joining the movement. You&apos;ll receive a confirmation call shortly.
+            {form.email
+              ? `A confirmation email has been sent to ${form.email}. You'll also receive a confirmation call shortly.`
+              : "You'll receive a confirmation call shortly."}
           </motion.p>
 
           {/* Order Details Card */}
@@ -188,6 +235,24 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-ascend-gray mb-2">
+                    Email (for order updates)
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ascend-gray" />
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      placeholder="ahmed@email.com"
+                      className="w-full h-11 pl-10 pr-4 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/40 focus:outline-none focus:border-ascend-accent font-body transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-ascend-gray mb-2">
                     Phone Number *
                   </label>
                   <input
@@ -199,20 +264,19 @@ export default function CheckoutPage() {
                     className="w-full h-11 px-4 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/40 focus:outline-none focus:border-ascend-accent font-body transition-all"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-ascend-gray mb-2">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  placeholder="Karachi"
-                  className="w-full h-11 px-4 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/40 focus:outline-none focus:border-ascend-accent font-body transition-all"
-                />
+                <div>
+                  <label className="block text-xs font-heading font-semibold uppercase tracking-wider text-ascend-gray mb-2">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    placeholder="Karachi"
+                    className="w-full h-11 px-4 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/40 focus:outline-none focus:border-ascend-accent font-body transition-all"
+                  />
+                </div>
               </div>
 
               <div>
@@ -243,9 +307,22 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 text-base py-4">
-              <Check className="w-5 h-5" />
-              Place Order — {formatPrice(total)}
+            <button
+              type="submit"
+              disabled={sending}
+              className="btn-primary w-full flex items-center justify-center gap-2 text-base py-4 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {sending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Place Order — {formatPrice(total)}
+                </>
+              )}
             </button>
 
             <Link

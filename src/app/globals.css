@@ -72,12 +72,20 @@
 
   .btn-primary {
     @apply bg-ascend-accent text-white px-8 py-3.5 font-heading font-semibold text-sm uppercase tracking-widest
-           hover:bg-ascend-accent-dark transition-all duration-300 relative overflow-hidden group;
+           hover:bg-ascend-accent-dark transition-all duration-300 relative overflow-hidden;
   }
 
   .btn-primary::before {
     content: '';
-    @apply absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700;
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.7s;
+  }
+
+  .btn-primary:hover::before {
+    transform: translateX(100%);
   }
 
   .btn-outline {

@@ -147,3 +147,28 @@ INSERT INTO products (name, slug, description, price, compare_price, category, t
 ('PRESSURE Hoodie', 'pressure-hoodie', 'Oversized premium hoodie with embossed PRESSURE branding.', 89, 120, 'hoodies', ARRAY['bestseller'], ARRAY['S','M','L','XL','XXL'], '[{"name":"Black","hex":"#0A0A0A"}]', 85, true, false, 4.8, 187),
 ('ASCEND Runner Joggers', 'ascend-runner-joggers', 'Technical joggers built for performance.', 79, 99, 'joggers', ARRAY['new'], ARRAY['XS','S','M','L','XL'], '[{"name":"Black","hex":"#0A0A0A"}]', 120, true, true, 4.7, 156),
 ('NO LIMITS Bomber', 'no-limits-bomber', 'Premium bomber jacket with satin lining.', 149, 199, 'outerwear', ARRAY['limited'], ARRAY['S','M','L','XL'], '[{"name":"Black","hex":"#0A0A0A"}]', 45, true, false, 5.0, 89);
+
+-- Notifications Table
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type TEXT NOT NULL CHECK (type IN ('order_confirmation', 'admin_order_alert', 'order_status_update', 'low_stock_alert', 'contact_form')),
+  subject TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('sent', 'failed', 'pending')),
+  order_id TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Notifications: admin only
+CREATE POLICY "Admin can view notifications" ON notifications
+  FOR SELECT USING (auth.role() = 'service_role');
+
+CREATE POLICY "System can insert notifications" ON notifications
+  FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Create indexes
+CREATE INDEX idx_notifications_type ON notifications(type);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX idx_notifications_order_id ON notifications(order_id);
+CREATE INDEX idx_notifications_recipient ON notifications(recipient);

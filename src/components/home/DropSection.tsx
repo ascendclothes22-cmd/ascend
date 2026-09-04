@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, Clock, Flame } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -37,8 +37,11 @@ function useCountdown(targetDate: Date) {
 export function DropSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const dropDate = new Date();
-  dropDate.setDate(dropDate.getDate() + 14);
+  const dropDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d;
+  }, []);
   const timeLeft = useCountdown(dropDate);
 
   const blocks = [

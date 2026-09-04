@@ -6,13 +6,13 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, TrendingUp,
   Plus, Edit2, Trash2, Eye, ChevronDown, BarChart3, DollarSign,
   Search, X, Check, Clock, Truck, CheckCircle, AlertCircle,
-  Download, Filter,
+  Download, Filter, Bell, Mail, Send, CheckCircle2,
 } from "lucide-react";
 import { products, mockOrders, adminStats } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
 import type { Product, Order, OrderStatus } from "@/lib/types";
 
-type Tab = "dashboard" | "products" | "orders" | "customers" | "inventory" | "analytics";
+type Tab = "dashboard" | "products" | "orders" | "customers" | "inventory" | "analytics" | "notifications";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
@@ -29,6 +29,9 @@ export default function AdminPage() {
     description: "",
   });
 
+  const [notifications, setNotifications] = useState<{ id: string; type: string; subject: string; recipient: string; status: string; createdAt: string; orderId?: string }[]>([]);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
   const navItems: { id: Tab; icon: typeof LayoutDashboard; label: string }[] = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "products", icon: Package, label: "Products" },
@@ -36,6 +39,7 @@ export default function AdminPage() {
     { id: "customers", icon: Users, label: "Customers" },
     { id: "inventory", icon: AlertCircle, label: "Inventory" },
     { id: "analytics", icon: BarChart3, label: "Analytics" },
+    { id: "notifications", icon: Bell, label: "Notifications" },
   ];
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
@@ -90,6 +94,44 @@ export default function AdminPage() {
     setProductForm({ name: "", price: "", category: "tees", stock: "", description: "" });
   };
 
+  const fetchNotifications = async () => {
+    setNotificationLoading(true);
+    try {
+      const res = await fetch("/api/notifications");
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+    } catch {
+      // Use mock data as fallback
+      setNotifications([
+        { id: "1", type: "order_confirmation", subject: "Order Confirmed — ASC-2025-0001", recipient: "ahmed@example.com", status: "sent", createdAt: new Date().toISOString(), orderId: "ASC-2025-0001" },
+        { id: "2", type: "admin_order_alert", subject: "New Order: ASC-2025-0002 — $149.00", recipient: "admin@ascend.com", status: "sent", createdAt: new Date(Date.now() - 3600000).toISOString(), orderId: "ASC-2025-0002" },
+        { id: "3", type: "contact_form", subject: "[ASCEND] Partnership Inquiry", recipient: "admin@ascend.com", status: "sent", createdAt: new Date(Date.now() - 7200000).toISOString() },
+        { id: "4", type: "low_stock_alert", subject: "Low Stock Alert — 2 products need restocking", recipient: "admin@ascend.com", status: "sent", createdAt: new Date(Date.now() - 86400000).toISOString() },
+      ]);
+    }
+    setNotificationLoading(false);
+  };
+
+  const sendTestNotification = async (type: string) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          data: type === "low_stock_alert"
+            ? lowStockProducts.slice(0, 2)
+            : type === "contact_form"
+            ? { name: "Test User", email: "test@example.com", subject: "Test Message", message: "This is a test notification from the admin panel." }
+            : mockOrders[0],
+        }),
+      });
+      fetchNotifications();
+    } catch {
+      // Silently fail
+    }
+  };
+
   const filteredOrders = localOrders.filter(
     (o) =>
       o.orderNumber.toLowerCase().includes(searchOrders.toLowerCase()) ||
@@ -121,9 +163,9 @@ export default function AdminPage() {
   const totalRevenue = localOrders.reduce((sum, o) => sum + o.total, 0);
 
   return (
-    <div className="pt-16 lg:pt-20 min-h-screen flex">
+    <div className="min-h-screen flex bg-ascend-black">
       {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-shrink-0 bg-ascend-black border-r border-white/5 flex-col fixed top-16 lg:top-20 bottom-0">
+      <aside className="hidden lg:flex w-64 flex-shrink-0 bg-ascend-black border-r border-white/5 flex-col fixed top-0 bottom-0 z-30">
         <div className="p-6 border-b border-white/5">
           <span className="text-sm font-heading font-bold tracking-[0.2em] text-ascend-white">
             ASCEND
@@ -156,7 +198,7 @@ export default function AdminPage() {
       </aside>
 
       {/* Mobile Nav */}
-      <div className="lg:hidden fixed top-16 left-0 right-0 bg-ascend-black border-b border-white/5 z-40 flex overflow-x-auto">
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-ascend-black border-b border-white/5 z-40 flex overflow-x-auto">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -174,7 +216,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <main className="flex-1 lg:ml-64 mt-16 lg:mt-0 min-h-screen">
+      <main className="flex-1 lg:ml-64 min-h-screen">
         <div className="p-6 lg:p-8">
 
           {/* ========== DASHBOARD ========== */}
@@ -779,8 +821,173 @@ export default function AdminPage() {
               </div>
             </motion.div>
           )}
+
+          {/* ========== NOTIFICATIONS ========== */}
+          {activeTab === "notifications" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-8">
+                <h1 className="text-3xl font-heading font-bold">Notifications</h1>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={fetchNotifications}
+                    className="h-10 px-4 text-xs font-heading uppercase tracking-wider border border-white/20 text-ascend-white hover:border-ascend-accent hover:text-ascend-accent transition-all flex items-center gap-2"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Send */}
+              <div className="glass p-6 mb-8">
+                <h3 className="text-sm font-heading font-bold uppercase tracking-wider mb-4">Send Test Notification</h3>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => sendTestNotification("order_confirmation")}
+                    className="h-9 px-4 text-xs font-heading uppercase tracking-wider border border-white/10 text-ascend-gray hover:border-ascend-accent hover:text-ascend-accent transition-all flex items-center gap-2"
+                  >
+                    <Mail className="w-3 h-3" />
+                    Order Confirmation
+                  </button>
+                  <button
+                    onClick={() => sendTestNotification("admin_order_alert")}
+                    className="h-9 px-4 text-xs font-heading uppercase tracking-wider border border-white/10 text-ascend-gray hover:border-ascend-accent hover:text-ascend-accent transition-all flex items-center gap-2"
+                  >
+                    <Bell className="w-3 h-3" />
+                    Admin Alert
+                  </button>
+                  <button
+                    onClick={() => sendTestNotification("low_stock_alert")}
+                    className="h-9 px-4 text-xs font-heading uppercase tracking-wider border border-white/10 text-ascend-gray hover:border-ascend-accent hover:text-ascend-accent transition-all flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-3 h-3" />
+                    Low Stock Alert
+                  </button>
+                  <button
+                    onClick={() => sendTestNotification("contact_form")}
+                    className="h-9 px-4 text-xs font-heading uppercase tracking-wider border border-white/10 text-ascend-gray hover:border-ascend-accent hover:text-ascend-accent transition-all flex items-center gap-2"
+                  >
+                    <Mail className="w-3 h-3" />
+                    Contact Form
+                  </button>
+                </div>
+              </div>
+
+              {/* Notification Log */}
+              <div className="glass p-6">
+                <h3 className="text-sm font-heading font-bold uppercase tracking-wider mb-6">Notification History</h3>
+                {notificationLoading ? (
+                  <div className="text-center py-12">
+                    <div className="w-8 h-8 border-2 border-white/10 border-t-ascend-accent rounded-full animate-spin mx-auto" />
+                    <p className="text-sm text-ascend-gray mt-3">Loading notifications...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="w-12 h-12 mx-auto text-ascend-gray/20 mb-4" />
+                    <p className="text-ascend-gray font-heading uppercase tracking-wider">No notifications yet</p>
+                    <p className="text-xs text-ascend-gray/50 mt-2">Notifications will appear here when emails are sent.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notifications.map((notif) => (
+                      <div key={notif.id} className="flex items-start gap-4 p-4 border border-white/5 hover:border-white/10 transition-colors">
+                        <div className={`w-8 h-8 flex-shrink-0 flex items-center justify-center ${
+                          notif.type === "order_confirmation"
+                            ? "bg-green-500/10"
+                            : notif.type === "admin_order_alert"
+                            ? "bg-blue-500/10"
+                            : notif.type === "low_stock_alert"
+                            ? "bg-red-500/10"
+                            : "bg-ascend-accent/10"
+                        }`}>
+                          {notif.type === "order_confirmation" ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          ) : notif.type === "admin_order_alert" ? (
+                            <Bell className="w-4 h-4 text-blue-500" />
+                          ) : notif.type === "low_stock_alert" ? (
+                            <AlertCircle className="w-4 h-4 text-red-500" />
+                          ) : (
+                            <Mail className="w-4 h-4 text-ascend-accent" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-heading font-semibold truncate">{notif.subject}</h4>
+                            <span className={`text-[10px] font-heading uppercase px-2 py-0.5 ${
+                              notif.status === "sent"
+                                ? "bg-green-500/10 text-green-500"
+                                : notif.status === "failed"
+                                ? "bg-red-500/10 text-red-500"
+                                : "bg-yellow-500/10 text-yellow-500"
+                            }`}>
+                              {notif.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-ascend-gray mt-0.5">
+                            To: {notif.recipient}
+                            {notif.orderId && ` • Order: ${notif.orderId}`}
+                          </p>
+                          <p className="text-[10px] text-ascend-gray/50 mt-1">
+                            {new Date(notif.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className={`text-[10px] font-heading uppercase tracking-wider px-2 py-1 ${
+                            notif.type === "order_confirmation"
+                              ? "text-green-400 bg-green-400/10"
+                              : notif.type === "admin_order_alert"
+                              ? "text-blue-400 bg-blue-400/10"
+                              : notif.type === "low_stock_alert"
+                              ? "text-red-400 bg-red-400/10"
+                              : "text-ascend-accent bg-ascend-accent/10"
+                          }`}>
+                            {notif.type.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Email Config Status */}
+              <div className="glass p-6 mt-6">
+                <h3 className="text-sm font-heading font-bold uppercase tracking-wider mb-4">Email Configuration</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <div>
+                      <p className="text-sm font-heading">SMTP Provider</p>
+                      <p className="text-xs text-ascend-gray">Gmail / Custom</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                    <div>
+                      <p className="text-sm font-heading">Environment</p>
+                      <p className="text-xs text-ascend-gray">Configure .env.local</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <div>
+                      <p className="text-sm font-heading">Templates</p>
+                      <p className="text-xs text-ascend-gray">6 email templates</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-white/[0.02] border border-white/5">
+                  <p className="text-xs text-ascend-gray font-heading uppercase tracking-wider mb-2">Required Environment Variables</p>
+                  <code className="text-xs text-ascend-accent font-mono block">
+                    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, ADMIN_EMAIL
+                  </code>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </main>
     </div>
   );
 }
+

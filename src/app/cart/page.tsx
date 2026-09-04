@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { formatPrice } from "@/lib/utils";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getSubtotal, getTotal, coupon, discount, applyCoupon, removeCoupon } = useCartStore();
+  const [couponInput, setCouponInput] = useState("");
   const subtotal = getSubtotal();
   const total = getTotal();
 
@@ -121,13 +123,13 @@ export default function CartPage() {
                     <input
                       type="text"
                       placeholder="Coupon code"
-                      defaultValue={coupon}
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
                       className="flex-1 h-10 px-3 text-sm bg-white/5 border border-white/10 text-ascend-white placeholder:text-ascend-gray/50 focus:outline-none focus:border-ascend-accent font-body"
                     />
                     <button
                       onClick={() => {
-                        const input = document.querySelector('.glass input[placeholder="Coupon code"]') as HTMLInputElement;
-                        if (input?.value) applyCoupon(input.value);
+                        if (couponInput) applyCoupon(couponInput);
                       }}
                       className="h-10 px-4 text-xs font-heading uppercase tracking-wider border border-white/20 text-ascend-white hover:border-ascend-accent hover:text-ascend-accent transition-all"
                     >
