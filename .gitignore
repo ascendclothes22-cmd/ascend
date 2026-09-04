@@ -32,3 +32,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local tooling / preview
+/.freebuff/
+
+# personal obsidian vault (not part of the site)
+/ascend1/
+
+# env examples and logs
+*.log
+*.log.err
